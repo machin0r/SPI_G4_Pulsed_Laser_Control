@@ -10,9 +10,9 @@ This program requires the use of [pySerial](https://github.com/pyserial/pyserial
 
 # Usage
 
-1) A ''Pulsed_Laser'' object should be created
-2) The ''Pulsed_Laser'' object can open communications by calling the ''create_serial_connection()'' function with the port name as an argument. This creates a ''Pulsed_Laser_Serial'' object
-3) The current laser parameters are requested using ''initialise_laser()'', this should be called after the connection has been made
+1) A ``Pulsed_Laser`` object is created
+2) The ``Pulsed_Laser`` object opens communications by calling the ``create_serial_connection(port)`` function with the port name as an argument. Baud rate, etc. can also be passed as arguments, but are set at the laser default. This function creates a ``Pulsed_Laser_Serial`` object tied to the ``Pulsed_Laser`` object.
+3) The current laser parameters are requested using ``initialise_laser()``, this should be called after the connection has been made
 
 # RS-232 Connection
 
