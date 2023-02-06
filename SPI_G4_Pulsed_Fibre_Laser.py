@@ -30,7 +30,6 @@ class Pulsed_Laser_Serial:
     # On a failure, will return "False" and the error code
     def send_set_command(self, setcommand):
         self.serial.write(setcommand + '\r\n')
-        time.sleep(0.01)
         result = self.serial.read_until(expected='\r\n')
         if result[0] == 'E':
             error = self.error_check(result)
@@ -45,7 +44,6 @@ class Pulsed_Laser_Serial:
     # On a failure, will return "False" and the error code
     def send_get_command(self, getcommand):
         self.serial.write(getcommand + '\r\n')
-        time.sleep(0.01)
         result = self.serial.read_until(expected='\r\n')
         if result[0] == 'E':
             error = self.error_check(result)
@@ -152,7 +150,7 @@ class Pulsed_Laser:
     def create_serial_connection(self, port, baudrate=115200,
                                  stopbits=serial.STOPBITS_ONE,
                                  parity=serial.PARITY_NONE,
-                                 databits=serial.EIGHTBITS, timeout=1):
+                                 databits=serial.EIGHTBITS, timeout=2):
         self.serialconn = Pulsed_Laser_Serial(port, baudrate, stopbits,
                                               parity, databits, timeout)
 
@@ -597,5 +595,4 @@ class Pulsed_Laser:
         self.read_serial_number()
         self.read_part_number()
         self.query_vendor_info()
-
         self.query_alarms()
