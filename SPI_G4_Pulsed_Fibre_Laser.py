@@ -29,28 +29,38 @@ class Pulsed_Laser_Serial:
     # Result will be empty, as there is no response from laser
     # On a failure, will return "False" and the error code
     def send_set_command(self, setcommand):
-        self.serial.write(setcommand + '\r\n')
-        result = self.serial.read_until(expected='\r\n')
-        if result[0] == 'E':
-            error = self.error_check(result)
-            success = False
-            return success, error
+        if self.serial.is_open():
+            self.serial.write(setcommand + '\r\n')
+            result = self.serial.read_until(expected='\r\n')
+            if result[0] == 'E':
+                error = self.error_check(result)
+                success = False
+                return success, error
+            else:
+                success = True
+                return success, result
         else:
-            success = True
+            success = False
+            result = f'Error: Serial port on {self.port} is not open'
             return success, result
 
     # Send a "get" command to the laser to read a parameter
     # On a success, will return "True" and the value
     # On a failure, will return "False" and the error code
     def send_get_command(self, getcommand):
-        self.serial.write(getcommand + '\r\n')
-        result = self.serial.read_until(expected='\r\n')
-        if result[0] == 'E':
-            error = self.error_check(result)
-            success = False
-            return success, error
+        if self.serial.is_open():
+            self.serial.write(getcommand + '\r\n')
+            result = self.serial.read_until(expected='\r\n')
+            if result[0] == 'E':
+                error = self.error_check(result)
+                success = False
+                return success, error
+            else:
+                success = True
+                return success, result
         else:
-            success = True
+            success = False
+            result = f'Error: Serial port on {self.port} is not open'
             return success, result
 
     # This dict stores the RS232 error codes and their meanings
@@ -292,7 +302,8 @@ class Pulsed_Laser:
 
     # Set the waveform of the laser
     # waveform can be 00-31
-    # Change is implimented when pulses start (SS1)
+    # Change is implimented when pulses start ('SS 1' sent)
+    # Every time a change is made, 'SS 1' still needs to be sent to update
     def set_waveform(self, waveform):
         setcommand = f'SW {waveform}'
         success, result = self.serialconn.send_set_command(setcommand)
@@ -316,7 +327,8 @@ class Pulsed_Laser:
     # Set the pulse repetition frequency (PRF) of the laser
     # PRF can be 0010000-1000000 Hz in pulsed mode
     # PRF can be 0000100-0100000 Hz in CW mode
-    # Change is implimented when pulses start (SS1)
+    # Change is implimented when pulses start ('SS 1' sent)
+    # Every time a change is made, 'SS 1' still needs to be sent to update
     def set_prf(self, PRF):
         setcommand = f'SR {PRF}'
         success, result = self.serialconn.send_set_command(setcommand)
@@ -342,7 +354,8 @@ class Pulsed_Laser:
     # When Laser_Emission_Gate input = High
     # Pulse burst length can be 0000000-10000000
     # =0 is continuous pulsing
-    # Change is implimented when pulses start (SS1)
+    # Change is implimented when pulses start ('SS 1' sent)
+    # Every time a change is made, 'SS 1' still needs to be sent to update
     def set_pulse_burst_length(self, pulseburst):
         setcommand = f'SL {pulseburst}'
         success, result = self.serialconn.send_set_command(setcommand)
@@ -368,7 +381,8 @@ class Pulsed_Laser:
     # Set the pump duty factor
     # pump duty can be 0000-1000
     # Pump modulation duty factor when laser in CWM mode
-    # Change is implimented when pulses start (SS1)
+    # Change is implimented when pulses start ('SS 1' sent)
+    # Every time a change is made, 'SS 1' still needs to be sent to update
     def set_pump_duty(self, pumpduty):
         setcommand = f'SF {pumpduty}'
         success, result = self.serialconn.send_set_command(setcommand)
