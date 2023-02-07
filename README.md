@@ -4,6 +4,10 @@ This is a Python library to interface with an SPI G4 pulsed laser.
 
 This library uses RS232 communication with the laser.
 
+#### To fire the laser, an emission gate signal must be provided. This is a 5V signal applied to either Pin 39 on the 62 way D-sub or J3:2 on the breakout board.
+#### This should be connected to a safety interlock to ensure that the laser emission is controlled and in a safe environment
+
+
 # Dependencies
 
 This program requires the use of [pySerial](https://github.com/pyserial/pyserial)

@@ -29,11 +29,12 @@ class Pulsed_Laser_Serial:
     # Result will be empty, as there is no response from laser
     # On a failure, will return "False" and the error code
     def send_set_command(self, setcommand):
-        if self.serial.is_open():
-            self.serial.write(setcommand + '\r\n')
-            result = self.serial.read_until(expected='\r\n')
+        if self.serial.is_open:
+            self.serial.write(bytes(setcommand + '\r\n', 'utf-8'))
+            result = (self.serial.read_until(expected='\r\n').decode("utf-8")
+                      .rstrip('\r\n'))  # Decode bytes and remove line breaks
             if result[0] == 'E':
-                error = self.error_check(result)
+                error = result + ': ' + self.error_check(result)
                 success = False
                 return success, error
             else:
@@ -48,11 +49,12 @@ class Pulsed_Laser_Serial:
     # On a success, will return "True" and the value
     # On a failure, will return "False" and the error code
     def send_get_command(self, getcommand):
-        if self.serial.is_open():
-            self.serial.write(getcommand + '\r\n')
-            result = self.serial.read_until(expected='\r\n')
+        if self.serial.is_open:
+            self.serial.write(bytes(getcommand + '\r\n', 'utf-8'))
+            result = (self.serial.read_until(expected='\r\n').decode("utf-8").
+                      rstrip('\r\n'))  # Decode bytes and remove line breaks
             if result[0] == 'E':
-                error = self.error_check(result)
+                error = result + ': ' + self.error_check(result)
                 success = False
                 return success, error
             else:
@@ -108,7 +110,7 @@ class Pulsed_Laser_Serial:
                      'E35': "Command could not be executed because \
                                 pulse repetition rate is out of range"
                      }
-        return errordict[errorcode].value()
+        return errordict[errorcode]
 
 
 class Pulsed_Laser:
@@ -123,7 +125,7 @@ class Pulsed_Laser:
 
         self.alarms = []
 
-        self.monitoringsignals
+        self.monitoringsignals = []
         self.monitor = False  # bit0, 0=No alarm, 1=Alarm condition
         self.alarmstatemonitor = False  # bit1, 0=No alarm, 1=Alarm condition
         self.lasertempmonitor = False  # bit2, 0=No temp alarm, 1=Temp alarm
@@ -160,9 +162,10 @@ class Pulsed_Laser:
     def create_serial_connection(self, port, baudrate=115200,
                                  stopbits=serial.STOPBITS_ONE,
                                  parity=serial.PARITY_NONE,
-                                 databits=serial.EIGHTBITS, timeout=2):
+                                 databits=serial.EIGHTBITS, timeout=1):
         self.serialconn = Pulsed_Laser_Serial(port, baudrate, stopbits,
                                               parity, databits, timeout)
+        self.serialconn.open_connection()
 
     # Close the connection with the laser
     def close_serial(self):
