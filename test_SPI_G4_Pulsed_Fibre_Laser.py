@@ -42,7 +42,7 @@ def test_error_check_fail():
                                         stopbits=serial.STOPBITS_ONE,
                                         databits=serial.EIGHTBITS, timeout=1)
     
-    with pytest.raises(KeyError, match=f'The error code fake_key is not in the list of errors'):
+    with pytest.raises(KeyError, match='The error code fake_key is not in the list of errors'):
         laser_serial.error_check('fake_key')
     
 def test_set_control_mode():
@@ -455,7 +455,7 @@ def test_query_laser_temp():
 
     result = laser.query_laser_temp()
 
-    assert result is '76.4'
+    assert result == '76.4'
     assert laser.lasertemp == 76.4
 
 def test_query_laser_temp_fail():
@@ -474,7 +474,7 @@ def test_query_beam_delivery_temp():
 
     result = laser.query_beam_delivery_temp()
 
-    assert result is '56.4'
+    assert result == '56.4'
     assert laser.beamdeliverytemp == 56.4
 
 def test_query_beam_delivery_fail():
@@ -493,7 +493,7 @@ def test_query_active_diode_currents():
 
     result = laser.query_active_diode_currents()
 
-    assert result is '10000, 15000'
+    assert result == '10000, 15000'
     assert laser.diodecurrents == '10000, 15000'
 
 def test_query_active_diode_fail():
@@ -512,7 +512,7 @@ def test_query_operating_hours():
 
     result = laser.query_operating_hours()
 
-    assert result is '000100'
+    assert result == '000100'
     assert laser.operatinghours == 100
 
 def test_query_operating_hours_fail():
@@ -531,7 +531,7 @@ def test_query_ext_prf():
 
     result = laser.query_ext_prf()
 
-    assert result is '0034567'
+    assert result == '0034567'
     assert laser.extprf == 34567
 
 def test_query_ext_prf_fail():
@@ -550,7 +550,7 @@ def test_query_extended_diode_currents():
 
     result = laser.query_extended_diode_currents()
 
-    assert result is '01000, 20000, 00030, (12032)'
+    assert result == '01000, 20000, 00030, (12032)'
     assert laser.extendeddiodecurrent == '01000, 20000, 00030, (12032)'
 
 def test_query_extended_diode_currents_fail():
@@ -569,7 +569,7 @@ def test_query_status_word_int():
 
     result = laser.query_status_word_int()
 
-    assert result is '65535'
+    assert result == '65535'
     assert laser.statuswordint == 65535
 
 def test_query_status_word_int_fail():
@@ -588,7 +588,7 @@ def test_read_serial_number():
 
     result = laser.read_serial_number()
 
-    assert result is '123213'
+    assert result == '123213'
     assert laser.serialno == 123213
 
 def test_read_serial_number_fail():
@@ -607,7 +607,7 @@ def test_read_part_number():
 
     result = laser.read_part_number()
 
-    assert result is 'XX-XXXP-X-XX-X-X-X(XX)'
+    assert result == 'XX-XXXP-X-XX-X-X-X(XX)'
     assert laser.partno == 'XX-XXXP-X-XX-X-X-X(XX)'
 
 def test_read_part_number_fail():
@@ -631,7 +631,7 @@ def test_query_vendor_info():
 
     result = laser.query_vendor_info()
 
-    assert result is '''FPGA HW Rev: 8.x.x
+    assert result == '''FPGA HW Rev: 8.x.x
     NIOS-II FW Rev: 8.x.x
     Stellaris FW Rev: 0.0.x.x
     IP Config: xxx.xxx.xxx.xxx DHCP
