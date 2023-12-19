@@ -112,7 +112,7 @@ class Pulsed_Laser_Serial:
                      'E25': "Command not executed because Laser is not ready",
                      'E26': "Command not executed because it is not available \
                                 in the active Laser Mode",
-                     'E27': "Command not executed because Laser_Enavle input \
+                     'E27': "Command not executed because Laser_Enable input \
                                 signal is active (high)",
                      'E28': "Command not executed - bit is already set",
                      'E29': "Command not executed - bit is already set",
@@ -129,6 +129,11 @@ class Pulsed_Laser_Serial:
                      'E35': "Command could not be executed because \
                                 pulse repetition rate is out of range"
                      }
+        
+        try:
+            errordict[errorcode]
+        except KeyError:
+            raise KeyError(f'The error code {errorcode} is not in the list of errors')
         return errordict[errorcode]
 
 
@@ -277,7 +282,7 @@ class Pulsed_Laser:
             self.mode = bool(int(result[6]))
             self.pulses = bool(int(result[3]))
             self.enable = bool(int(result[0]))
-            return
+            return result
         elif success is False:
             return result
 
@@ -468,13 +473,9 @@ class Pulsed_Laser:
         elif alarm == 80:
             return "Base plate temperature alarm"
         elif alarm == 93:
-            return "Power supply alarm. When supply is restored the Laser \
-                    returns to the STANDBY state"
+            return "Power supply alarm. When supply is restored the Laser returns to the STANDBY state"
         elif alarm == 95:
-            return "Fan alarm. The Laser continues to operate if one fan \
-                    stalls. The fan noise increases as the  remaining 3 fans \
-                    increase their speed to compensate. Only cleared by \
-                    cycling the power supply."
+            return "Fan alarm. The Laser continues to operate if one fan stalls. The fan noise increases as the  remaining 3 fans increase their speed to compensate. Only cleared by cycling the power supply."
         elif alarm == 99:
             return "Emergency stop alarm Triggered by the Laser_Disable signal"
 
@@ -484,14 +485,14 @@ class Pulsed_Laser:
         command = 'QD'
         success, result = self.serialconn.send_get_command(command)
         if success is True:
-            self.monitor = bool(result[0])
-            self.alarmstatemonitor = bool(result[1])
-            self.lasertempmonitor = bool(result[2])
-            self.beamdeliverytempmon = bool(result[3])
-            self.systemfaultmonitor = bool(result[4])
-            self.deactivatedmonitor = bool(result[5])
-            self.emissionwarningmon = bool(result[6])
-            self.laseronmonitor = bool(result[7])
+            self.monitor = bool(int(result[0]))
+            self.alarmstatemonitor = bool(int(result[1]))
+            self.lasertempmonitor = bool(int(result[2]))
+            self.beamdeliverytempmon = bool(int(result[3]))
+            self.systemfaultmonitor = bool(int(result[4]))
+            self.deactivatedmonitor = bool(int(result[5]))
+            self.emissionwarningmon = bool(int(result[6]))
+            self.laseronmonitor = bool(int(result[7]))
             return
         elif success is False:
             return result
@@ -502,7 +503,7 @@ class Pulsed_Laser:
         command = 'QT'
         success, result = self.serialconn.send_get_command(command)
         if success is True:
-            self.lasertemp = int(result)
+            self.lasertemp = float(result)
             return result
         elif success is False:
             return result
@@ -513,7 +514,7 @@ class Pulsed_Laser:
         command = 'QU'
         success, result = self.serialconn.send_get_command(command)
         if success is True:
-            self.beamdeliverytemp = int(result)
+            self.beamdeliverytemp = float(result)
             return result
         elif success is False:
             return result
@@ -614,6 +615,7 @@ class Pulsed_Laser:
         success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.vendorinfo = result
+            print(self.vendorinfo)
             return result
         elif success is False:
             return result
