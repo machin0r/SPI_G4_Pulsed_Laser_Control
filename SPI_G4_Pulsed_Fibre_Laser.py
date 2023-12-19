@@ -1,9 +1,25 @@
-import time
+'''This is a Python library to interface with an SPI G4 pulsed laser.
+
+This library uses RS232 communication with the laser.
+
+To fire the laser, an emission gate signal must be provided. This is a 5V
+signal applied to either Pin 39 on the 62 way D-sub or J3:2 on the breakout board.
+This should be connected to a safety interlock to ensure that the laser
+emission is controlled and in a safe environment
+'''
+
 import serial
 
 
 class Pulsed_Laser_Serial:
-    def __init__(self, port, baudrate, stopbits, parity, databits, timeout):
+    '''    A Python class for controlling a pulsed laser via a serial connection.
+
+    This class allows communication with the laser through a serial interface,
+    enabling users to send "set" and "get" commands to change or retrieve laser parameters.
+    Additionally, it provides error checking for received error codes and their meanings.'''
+
+    def __init__(self, port:str, baudrate:int, stopbits:int, parity:int,
+                 databits:int, timeout:int):
         self.port = port
         self.baudrate = baudrate
         self.stopbits = stopbits
@@ -12,6 +28,7 @@ class Pulsed_Laser_Serial:
         self.timeout = timeout
 
     def open_connection(self):
+        '''Open the serial connection to the laser'''
         self.serial = serial.Serial(
                             port=self.port,
                             baudrate=self.baudrate,
@@ -22,13 +39,14 @@ class Pulsed_Laser_Serial:
                         )
 
     def close_connection(self):
+        '''Close serial connection to the laser'''
         self.serial.close()
 
-    # Send a "set" command to the laser to change a parameter
-    # On a success, will return "True".
-    # Result will be empty, as there is no response from laser
-    # On a failure, will return "False" and the error code
-    def send_set_command(self, setcommand):
+    def send_set_command(self, setcommand:str) -> (bool, str):
+        '''Send a "set" command to the laser to change a parameter
+        On a success, will return "True".
+        Result will be empty, as there is no response from laser
+        On a failure, will return "False" and the error code'''
         if self.serial.is_open:
             self.serial.write(bytes(setcommand + '\r\n', 'utf-8'))
             result = (self.serial.read_until(expected='\r\n').decode("utf-8")
@@ -45,10 +63,10 @@ class Pulsed_Laser_Serial:
             result = f'Error: Serial port on {self.port} is not open'
             return success, result
 
-    # Send a "get" command to the laser to read a parameter
-    # On a success, will return "True" and the value
-    # On a failure, will return "False" and the error code
-    def send_get_command(self, getcommand):
+    def send_get_command(self, getcommand:str) -> (bool, str):
+        '''Send a "get" command to the laser to read a parameter
+        On a success, will return "True" and the value
+        On a failure, will return "False" and the error code'''
         if self.serial.is_open:
             self.serial.write(bytes(getcommand + '\r\n', 'utf-8'))
             result = (self.serial.read_until(expected='\r\n').decode("utf-8").
@@ -65,9 +83,10 @@ class Pulsed_Laser_Serial:
             result = f'Error: Serial port on {self.port} is not open'
             return success, result
 
-    # This dict stores the RS232 error codes and their meanings
-    # It will return the error message associated with the code
-    def error_check(self, errorcode):
+    def error_check(self, errorcode:str) -> str:
+        '''This dict stores the RS232 error codes and their meanings
+        It will return the error message associated with the code'''
+
         errordict = {'E5': "Illegal character",
                      'E6': "Too few characters",
                      'E7': "Illegal password character",
@@ -114,6 +133,9 @@ class Pulsed_Laser_Serial:
 
 
 class Pulsed_Laser:
+    '''Pulsed Laser object that holds all the current parameters of the physical
+     laser, as well as get/set methods'''
+
     def __init__(self):
         self.controlmode = 0
         self.simmer = 0
@@ -157,24 +179,26 @@ class Pulsed_Laser:
         self.pulses = False  # bit1, 0=Off, 1=Inernal Pulse On
         self.enable = False  # bit0, 0=Laser off, 1=Laser on
 
-    # Create an instance of the Pulsed_Laser_Serial class to talk to laser
-    # Default serial settings are those detailed in the G4 manual
-    def create_serial_connection(self, port, baudrate=115200,
-                                 stopbits=serial.STOPBITS_ONE,
-                                 parity=serial.PARITY_NONE,
-                                 databits=serial.EIGHTBITS, timeout=1):
+
+    def create_serial_connection(self, port: str, baudrate: int = 115200,
+                                 stopbits: int = serial.STOPBITS_ONE,
+                                 parity: int = serial.PARITY_NONE,
+                                 databits: int = serial.EIGHTBITS,
+                                 timeout: int = 1):
+        '''Create an instance of the Pulsed_Laser_Serial class to talk to laser
+        Default serial settings are those detailed in the G4 manual'''
         self.serialconn = Pulsed_Laser_Serial(port, baudrate, stopbits,
                                               parity, databits, timeout)
         self.serialconn.open_connection()
 
-    # Close the connection with the laser
     def close_serial(self):
+        '''Close the connection with the laser'''
         self.serialconn.close_connection()
 
-    # Set the control mode of the laser
-    # mode = 0-7
-    # To understand the different control modes, refer to laser documentation
-    def set_control_mode(self, mode):
+    def set_control_mode(self, mode: int) -> None | str:
+        '''Set the control mode of the laser
+        mode = 0-7
+        To understand the different control modes, refer to laser documentation'''
         setcommand = f'SM {mode}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -183,20 +207,20 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Get the current control mode
-    # On success return a single digit 0-7
-    def get_control_mode(self):
+    def get_control_mode(self) -> str:
+        '''Get the current control mode
+        On success return a single digit 0-7'''
         command = 'GM'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.controlmode = int(result)
             return result
         elif success is False:
             return result
 
-    # Set the value of the status word bit to 1
-    # Only writable bits (0, 1, 3, 4, 8, 9)
-    def set_status_word(self, bit):
+    def set_status_word(self, bit: int) -> None | str:
+        '''Set the value of the status word bit to 1
+        Only writable bits (0, 1, 3, 4, 8, 9)'''
         command = f'SS {bit}'
         success, result = self.serialconn.send_set_command(command)
         if success is True:
@@ -217,9 +241,9 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Set the value of the status word bit to 0
-    # Only writable bits (0, 1, 3, 4, 8, 9)
-    def clear_status_word(self, bit):
+    def clear_status_word(self, bit: int) -> None | str:
+        '''Set the value of the status word bit to 0
+        Only writable bits (0, 1, 3, 4, 8, 9)'''
         command = f'SC {bit}'
         success, result = self.serialconn.send_set_command(command)
         if success is True:
@@ -240,11 +264,11 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Get the current value of each status word bit
-    # Result is in the format "n, n, n,"
-    # Convert the "n" part of the result to a bool for each parameter
-    def get_status_word(self):
-        command = f'GS'
+    def get_status_word(self) -> None | str:
+        '''Get the current value of each status word bit
+        Result is in the format "n, n, n,"
+        Convert the "n" part of the result to a bool for each parameter'''
+        command = 'GS'
         success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.extpulsetrigger = bool(int(result[15]))
@@ -257,9 +281,9 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Set the simmer current of the laser
-    # current can be 000-100
-    def set_simmer_current(self, current):
+    def set_simmer_current(self, current: int) -> None | str:
+        '''Set the simmer current of the laser
+        current can be 000-100'''
         setcommand = f'SH {current}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -268,21 +292,21 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Get the current simmer current
-    # On success return "nnn"
-    def get_simmer_current(self):
+    def get_simmer_current(self) -> str:
+        '''Get the current simmer current
+        On success return "nnn" where nnn is the current'''
         command = 'GH'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.simmer = int(result)
             return result
         elif success is False:
             return result
 
-    # Set the active current of the laser
-    # current can be 0000-1000
-    # Active current is proportional to power
-    def set_active_current(self, current):
+    def set_active_current(self, current: int) -> None | str:
+        '''Set the active current of the laser
+        current can be 0000-1000
+        Active current is proportional to power'''
         setcommand = f'SI {current}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -291,23 +315,23 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Get the current active current
-    # On success return "nnnn"
-    # Active current is proportional to power
-    def get_active_current(self):
+    def get_active_current(self) -> str:
+        '''Get the current active current
+        On success return "nnnn" where nnnn is the current
+        Active current is proportional to power'''
         command = 'GI'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.activecurrent = int(result)
             return result
         elif success is False:
             return result
 
-    # Set the waveform of the laser
-    # waveform can be 00-31
-    # Change is implimented when pulses start ('SS 1' sent)
-    # Every time a change is made, 'SS 1' still needs to be sent to update
-    def set_waveform(self, waveform):
+    def set_waveform(self, waveform: int) -> None | str:
+        '''Set the waveform of the laser
+        waveform can be 00-31
+        Change is implimented when pulses start ('SS 1' sent)
+        Every time a change is made, 'SS 1' still needs to be sent to update'''
         setcommand = f'SW {waveform}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -316,23 +340,23 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Get the waveform of the laser
-    # waveformc an be 00-31
-    def get_waveform(self):
+    def get_waveform(self) -> str:
+        '''Get the waveform of the laser
+        waveform can be 00-31'''
         command = 'GW'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.waveform = int(result)
             return result
         elif success is False:
             return result
 
-    # Set the pulse repetition frequency (PRF) of the laser
-    # PRF can be 0010000-1000000 Hz in pulsed mode
-    # PRF can be 0000100-0100000 Hz in CW mode
-    # Change is implimented when pulses start ('SS 1' sent)
-    # Every time a change is made, 'SS 1' still needs to be sent to update
-    def set_prf(self, PRF):
+    def set_prf(self, PRF: int) -> None | str:
+        '''Set the pulse repetition frequency (PRF) of the laser
+        PRF can be 0010000-1000000 Hz in pulsed mode
+        PRF can be 0000100-0100000 Hz in CW mode
+        Change is implimented when pulses start ('SS 1' sent)
+        Every time a change is made, 'SS 1' still needs to be sent to update'''
         setcommand = f'SR {PRF}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -341,25 +365,25 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Get the pulse repetition frequency (PRF) of the laser
-    # PRF can be 0010000-1000000 Hz in pulsed mode
-    # PRF can be 0000100-0100000 Hz in CW mode
-    def get_prf(self):
+    def get_prf(self) -> str:
+        '''Get the pulse repetition frequency (PRF) of the laser
+        PRF can be 0010000-1000000 Hz in pulsed mode
+        PRF can be 0000100-0100000 Hz in CW mode'''
         command = 'GR'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.prf = int(result)
             return result
         elif success is False:
             return result
 
-    # Set the pulse burst length, number of pulses produced
-    # When Laser_Emission_Gate input = High
-    # Pulse burst length can be 0000000-10000000
-    # =0 is continuous pulsing
-    # Change is implimented when pulses start ('SS 1' sent)
-    # Every time a change is made, 'SS 1' still needs to be sent to update
-    def set_pulse_burst_length(self, pulseburst):
+    def set_pulse_burst_length(self, pulseburst: int) -> None | str:
+        '''Set the pulse burst length, number of pulses produced
+        When Laser_Emission_Gate input = High
+        Pulse burst length can be 0000000-10000000
+        =0 is continuous pulsing
+        Change is implimented when pulses start ('SS 1' sent)
+        Every time a change is made, 'SS 1' still needs to be sent to update'''
         setcommand = f'SL {pulseburst}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -368,25 +392,25 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Set the pulse burst length, number of pulses produced
-    # When Laser_Emission_Gate input = High
-    # Pulse burst length can be 0000000-10000000
-    # =0 is continuous pulsing
-    def get_pulse_burst_length(self):
+    def get_pulse_burst_length(self) -> str:
+        '''Set the pulse burst length, number of pulses produced
+        When Laser_Emission_Gate input = High
+        Pulse burst length can be 0000000-10000000
+        =0 is continuous pulsing'''
         command = 'GL'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.pulseburstlength = int(result)
             return result
         elif success is False:
             return result
 
-    # Set the pump duty factor
-    # pump duty can be 0000-1000
-    # Pump modulation duty factor when laser in CWM mode
-    # Change is implimented when pulses start ('SS 1' sent)
-    # Every time a change is made, 'SS 1' still needs to be sent to update
-    def set_pump_duty(self, pumpduty):
+    def set_pump_duty(self, pumpduty: int)  -> None | str:
+        '''Set the pump duty factor
+        pump duty can be 0000-1000
+        Pump modulation duty factor when laser in CWM mode
+        Change is implimented when pulses start ('SS 1' sent)
+        Every time a change is made, 'SS 1' still needs to be sent to update'''
         setcommand = f'SF {pumpduty}'
         success, result = self.serialconn.send_set_command(setcommand)
         if success is True:
@@ -395,28 +419,28 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Set the pump duty factor
-    # pump duty can be 0000-1000
-    # Response is "nnnnnn"
-    # Pump modulation duty factor when laser in CWM mode
-    def get_pump_duty(self):
+    def get_pump_duty(self) -> str:
+        '''Set the pump duty factor
+        pump duty can be 0000-1000
+        Response is "nnnnnn"
+        Pump modulation duty factor when laser in CWM mode'''
         command = 'GF'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.pumpduty = int(result)
             return result
         elif success is False:
             return result
 
-    # Query the alarms active
-    # Response is "nn, nn, nn..."
-    # No response if no alarms
-    # The return string is split using ', ' as the deliminator
-    # Each alarm is passed to read_alarms(), and the returned error message
-    # is appended to the alarms array
-    def query_alarms(self):
+    def query_alarms(self) -> str:
+        '''Query the alarms active
+        Response is "nn, nn, nn..."
+        No response if no alarms
+        The return string is split using ', ' as the deliminator
+        Each alarm is passed to read_alarms(), and the returned error message
+        is appended to the alarms array'''
         command = 'QA'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             alarmarray = result.split(', ')
             for alarm in alarmarray:
@@ -425,7 +449,9 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    def decode_alarms(self, alarmcode):
+    def decode_alarms(self, alarmcode: int) -> str:
+        '''Function for converting the alarm code number into a more
+        verbose explanation of the error'''
         alarm = int(alarmcode)
         if 40 <= alarm <= 49:
             return "System fault: diode driver current"
@@ -452,9 +478,9 @@ class Pulsed_Laser:
         elif alarm == 99:
             return "Emergency stop alarm Triggered by the Laser_Disable signal"
 
-    # Query the monitoring group signal states
-    # Response is "bbbbbbbb", 00000000-11111111
-    def query_monitoring_states(self):
+    def query_monitoring_states(self) -> None | str:
+        '''Query the monitoring group signal states
+        Response is "bbbbbbbb", 00000000-11111111'''
         command = 'QD'
         success, result = self.serialconn.send_get_command(command)
         if success is True:
@@ -470,122 +496,122 @@ class Pulsed_Laser:
         elif success is False:
             return result
 
-    # Query the laser temperature
-    # Response is "nn.n" from 00.0-85.0 C
-    def query_laser_temp(self):
+    def query_laser_temp(self) -> str:
+        '''Query the laser temperature
+        Response is "nn.n" from 00.0-85.0 C'''
         command = 'QT'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.lasertemp = int(result)
             return result
         elif success is False:
             return result
 
-    # Query the beam delivery temperature
-    # Response is "nn.n" from 00.0-85.0 C
-    def query_beam_delivery_temp(self):
+    def query_beam_delivery_temp(self) -> str:
+        '''Query the beam delivery temperature
+        Response is "nn.n" from 00.0-85.0 C'''
         command = 'QU'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.beamdeliverytemp = int(result)
             return result
         elif success is False:
             return result
 
-    # Query the diode current of the pump laser driver stages (mA)
-    # Response is "nnnnn, nnnnn" from 00000-20000
-    def query_active_diode_currents(self):
+    def query_active_diode_currents(self) -> str:
+        '''Query the diode current of the pump laser driver stages (mA)
+        Response is "nnnnn, nnnnn" from 00000-20000'''
         command = 'QI'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.diodecurrents = result
             return result
         elif success is False:
             return result
 
-    # Query the operating time of the laser
-    # Time for whcih the 24V Logic supply has been applied
-    # Response is "nnnnnn" in hours
-    def query_operating_hours(self):
+    def query_operating_hours(self) -> str:
+        '''Query the operating time of the laser
+        Time for which the 24V Logic supply has been applied
+        Response is "nnnnnn" in hours'''
         command = 'QH'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.operatinghours = int(result)
             return result
         elif success is False:
             return result
 
-    # Query the external PRF signal
-    # Rising edge to rising edge of the external trigger signal
-    # Response is "nnnnnnn", 0000000-1000000 Hz
-    def query_ext_prf(self):
+    def query_ext_prf(self) -> str:
+        '''Query the external PRF signal
+        Rising edge to rising edge of the external trigger signal
+        Response is "nnnnnnn", 0000000-1000000 Hz'''
         command = 'QR'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.extprf = int(result)
             return result
         elif success is False:
             return result
 
-    # Query the extended diode currents
-    # CUrrent of pump laser diode driver stages in high power lasers
-    # Response is "nnnnn, nnnnn, nnnnn, (nnnnn)"
-    # 00000-20000 mA
-    def query_extended_diode_currents(self):
+    def query_extended_diode_currents(self) -> str:
+        '''Query the extended diode currents
+        Current of pump laser diode driver stages in high power lasers
+        Response is "nnnnn, nnnnn, nnnnn, (nnnnn)"
+        00000-20000 mA'''
         command = 'QJ'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.extendeddiodecurrent = result
             return result
         elif success is False:
             return result
 
-    # Query the status word as a 16-bit integer
-    # Response is "nnnnnn", 00000-65535
-    def query_status_word_int(self):
+    def query_status_word_int(self) -> str:
+        '''Query the status word as a 16-bit integer
+        Response is "nnnnnn", 00000-65535'''
         command = 'QS'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.statuswordint = int(result)
             return result
         elif success is False:
             return result
 
-    # Read the laser serial number
-    # Response is "nnnnnn", numerical
-    def read_serial_number(self):
+    def read_serial_number(self) -> str:
+        '''Read the laser serial number
+        Response is "nnnnnn", numerical'''
         command = 'RSN'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.serialno = int(result)
             return result
         elif success is False:
             return result
 
-    # Read the part number of the laser
-    # Response is "XX-XXXP-X-XX-X-X-X(XX)"
-    def read_part_number(self):
+    def read_part_number(self) -> str:
+        '''Read the part number of the laser
+        Response is "XX-XXXP-X-XX-X-X-X(XX)"'''
         command = 'RPN'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.partno = result
             return result
         elif success is False:
             return result
 
-    # Query Vendor Information on the laser
-    # Response is:
-    # FPGA HW Rev: 8.x.x
-    # NIOS-II FW Rev: 8.x.x
-    # Stellaris FW Rev: 0.0.x.x
-    # IP Config: xxx.xxx.xxx.xxx DHCP
-    # Driver FW Rev: x.x
-    #
-    # 'DCHP' may be 'STATIC' depending on IP config
-    # x.x.x specifies versions
-    def query_vendor_info(self):
+    def query_vendor_info(self) -> str:
+        '''Query Vendor Information on the laser
+        Response is:
+        FPGA HW Rev: 8.x.x
+        NIOS-II FW Rev: 8.x.x
+        Stellaris FW Rev: 0.0.x.x
+        IP Config: xxx.xxx.xxx.xxx DHCP
+        Driver FW Rev: x.x
+
+        'DCHP' may be 'STATIC' depending on IP config
+        x.x.x specifies versions'''
         command = 'RQV'
-        success, result = (self.serialconn.send_get_command(command))
+        success, result = self.serialconn.send_get_command(command)
         if success is True:
             self.vendorinfo = result
             return result
@@ -593,6 +619,8 @@ class Pulsed_Laser:
             return result
 
     def initialise_laser(self):
+        '''Runs through all the functions that request information off the laser
+        to populate the information about it'''
         self.get_control_mode()
         self.get_status_word()
         self.get_simmer_current()
