@@ -16,7 +16,7 @@ pub struct PulsedLaser {
     simmer_current: i32,
     active_current: i32,
     waveform: i8,
-    prf: i32,
+    prf_hz: i32,
     pulse_burst_length: i32,
     pump_duty: i32,
 
@@ -188,7 +188,7 @@ impl PulsedLaser {
             simmer_current: 0,
             active_current: 0,
             waveform: 0,
-            prf: 0,
+            prf_hz: 0,
             pulse_burst_length: 0,
             pump_duty: 0,
             alarms: Vec::new(),
@@ -442,16 +442,16 @@ impl PulsedLaser {
         Ok(waveform)
     }
 
-    pub fn set_prf(&mut self, prf: i32) -> Result<(), String> {
+    pub fn set_prf(&mut self, prf_hz: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
             .as_mut()
             .ok_or("Serial connection not established")?;
 
-        let set_command = format!("SR {}", prf);
+        let set_command = format!("SR {}", prf_hz);
         serial.send_command(set_command)?;
 
-        self.prf = prf;
+        self.prf_hz = prf_hz;
 
         Ok(())
     }
@@ -469,7 +469,7 @@ impl PulsedLaser {
             .parse::<i32>()
             .map_err(|e| format!("Failed to parse PRF: {}", e))?;
 
-        self.prf = prf;
+        self.prf_hz = prf;
         Ok(prf)
     }
 }
