@@ -239,4 +239,34 @@ impl PulsedLaser {
     fn close_serial(&mut self) {
         self.serial_conn = None;
     }
+
+    fn set_control_mode(&mut self, mode: i8) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SM {}", mode);
+        serial.send_command(set_command)?;
+
+        self.control_mode = mode;
+        Ok(())
+    }
+
+    fn get_control_mode(&mut self) -> Result<i8, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("GM".to_string())?;
+
+        let mode = result
+            .trim()
+            .parse::<i8>()
+            .map_err(|e| format!("Failed to parse mode: {}", e))?;
+
+        self.control_mode = mode;
+        Ok(mode)
+    }
 }
