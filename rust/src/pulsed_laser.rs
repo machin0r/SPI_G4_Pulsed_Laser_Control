@@ -274,7 +274,7 @@ impl PulsedLaser {
         }
     }
 
-    fn create_serial_connection(
+    pub fn create_serial_connection(
         &mut self,
         port: String,
         baud_rate: u32,
@@ -288,7 +288,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn close_serial(&mut self) {
+    pub fn close_serial(&mut self) {
         self.serial_conn = None;
     }
 
