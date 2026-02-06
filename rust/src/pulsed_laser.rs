@@ -269,4 +269,83 @@ impl PulsedLaser {
         self.control_mode = mode;
         Ok(mode)
     }
+
+    fn set_status_word(&mut self, bit: u8) -> Result<(), String> {
+        if ![0, 1, 3, 4, 8, 9].contains(&bit) {
+            return Err(format!("Bit {} is not writable", bit));
+        }
+
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SS {}", bit);
+        serial.send_command(set_command)?;
+
+        match bit {
+            0 => self.enable = true,
+            1 => self.pulses = true,
+            3 => self.mode = true,
+            4 => self.external_current_control = true,
+            8 => self.pilot_laser = true,
+            9 => self.external_pulse_trigger = true,
+            _ => unreachable!(),
+        }
+        Ok(())
+    }
+
+    fn clear_status_word(&mut self, bit: u8) -> Result<(), String> {
+        if ![0, 1, 3, 4, 8, 9].contains(&bit) {
+            return Err(format!("Bit {} is not writable", bit));
+        }
+
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SC {}", bit);
+        serial.send_command(set_command)?;
+
+        match bit {
+            0 => self.enable = false,
+            1 => self.pulses = false,
+            3 => self.mode = false,
+            4 => self.external_current_control = false,
+            8 => self.pilot_laser = false,
+            9 => self.external_pulse_trigger = false,
+            _ => unreachable!(),
+        }
+        Ok(())
+    }
+
+    fn parse_bit(&self, result: &str, position: usize) -> Result<bool, String> {
+        result
+            .chars()
+            .nth(position)
+            .ok_or_else(|| format!("Invalid status word format at position {}", position))?
+            .to_digit(10)
+            .ok_or_else(|| format!("Invalid digit at position {}", position))
+            .map(|digit| digit == 1)
+    }
+
+    fn get_status_word(&mut self) -> Result<String, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let get_command = format!("GS");
+        let result = serial.send_command(get_command)?;
+
+        self.enable = self.parse_bit(&result, 0)?;
+        self.pulses = self.parse_bit(&result, 3)?;
+        self.mode = self.parse_bit(&result, 6)?;
+        self.external_current_control = self.parse_bit(&result, 9)?;
+        self.pilot_laser = self.parse_bit(&result, 12)?;
+        self.external_pulse_trigger = self.parse_bit(&result, 15)?;
+
+        Ok(result)
+    }
 }
