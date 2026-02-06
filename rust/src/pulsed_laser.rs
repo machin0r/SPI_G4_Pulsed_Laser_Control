@@ -348,4 +348,35 @@ impl PulsedLaser {
 
         Ok(result)
     }
+
+    fn set_simmer_current(&mut self, current: i32) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SH {}", current);
+        serial.send_command(set_command)?;
+
+        self.simmer_current = current;
+
+        Ok(())
+    }
+
+    fn get_simmer_current(&mut self) -> Result<i32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("GH".to_string())?;
+
+        let current = result
+            .trim()
+            .parse::<i32>()
+            .map_err(|e| format!("Failed to parse simmer current: {}", e))?;
+
+        self.simmer_current = current;
+        Ok(current)
+    }
 }
