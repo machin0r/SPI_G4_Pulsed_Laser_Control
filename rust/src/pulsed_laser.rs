@@ -410,4 +410,35 @@ impl PulsedLaser {
         self.active_current = current;
         Ok(current)
     }
+
+    fn set_waveform(&mut self, waveform: i8) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SW {}", waveform);
+        serial.send_command(set_command)?;
+
+        self.waveform = waveform;
+
+        Ok(())
+    }
+
+    fn get_waveform(&mut self) -> Result<i8, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("GW".to_string())?;
+
+        let waveform = result
+            .trim()
+            .parse::<i8>()
+            .map_err(|e| format!("Failed to parse waveform: {}", e))?;
+
+        self.waveform = waveform;
+        Ok(waveform)
+    }
 }
