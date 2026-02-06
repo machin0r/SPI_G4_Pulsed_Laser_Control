@@ -745,4 +745,61 @@ impl PulsedLaser {
         self.pulse_burst_length = pulse_burst_length;
         Ok(pulse_burst_length)
     }
+
+    /// Set the pump modulation duty factor when laser in CWM mode
+    ///
+    /// Pump duty can be 0000-1000
+    ///
+    /// Change is implemented when pulses start ('SS 1' sent)
+    /// Every time a change is made, 'SS 1' still needs to be sent to update
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `pump_duty` - The pump modulation duy factor
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn set_pump_duty(&mut self, pump_duty: i32) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SF {}", pump_duty);
+        serial.send_command(set_command)?;
+
+        self.pump_duty = pump_duty;
+
+        Ok(())
+    }
+
+    /// Get the pump modulation duty factor when laser in CWM mode
+    ///
+    /// Pump duty can be 0000-1000
+    ///
+    /// # Returns
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn get_pump_duty(&mut self) -> Result<i32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("GF".to_string())?;
+
+        let pump_duty = result
+            .trim()
+            .parse::<i32>()
+            .map_err(|e| format!("Failed to parse pump duty: {}", e))?;
+
+        self.pump_duty = pump_duty;
+        Ok(pump_duty)
+    }
 }
