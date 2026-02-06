@@ -441,4 +441,35 @@ impl PulsedLaser {
         self.waveform = waveform;
         Ok(waveform)
     }
+
+    fn set_prf(&mut self, prf: i32) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SR {}", prf);
+        serial.send_command(set_command)?;
+
+        self.prf = prf;
+
+        Ok(())
+    }
+
+    fn get_prf(&mut self) -> Result<i32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("GR".to_string())?;
+
+        let prf = result
+            .trim()
+            .parse::<i32>()
+            .map_err(|e| format!("Failed to parse PRF: {}", e))?;
+
+        self.prf = prf;
+        Ok(prf)
+    }
 }
