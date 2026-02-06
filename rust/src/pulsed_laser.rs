@@ -682,4 +682,67 @@ impl PulsedLaser {
         self.prf_hz = prf;
         Ok(prf)
     }
+
+    /// Set the pulse burst length of the laser.
+    ///
+    /// This is the number of pulses produced
+    /// when the Laser_Emission_Gate input = High
+    /// The pulse burst length can be 0000000-10000000
+    /// =0 is continuous pulsing
+    ///
+    /// Change is implemented when pulses start ('SS 1' sent)
+    /// Every time a change is made, 'SS 1' still needs to be sent to update
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `pulse_burst` - The pulse burst length to use
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn set_pulse_burst_length(&mut self, pulse_burst: i32) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let set_command = format!("SL {}", pulse_burst);
+        serial.send_command(set_command)?;
+
+        self.pulse_burst_length = pulse_burst;
+
+        Ok(())
+    }
+
+    /// Get the pulse burst length from the laser.
+    ///
+    /// This is the number of pulses produced
+    /// when the Laser_Emission_Gate input = High
+    /// The pulse burst length can be 0000000-10000000
+    /// =0 is continuous pulsing
+    ///
+    /// # Returns
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn get_pulse_burst_length(&mut self) -> Result<i32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("GL".to_string())?;
+
+        let pulse_burst_length = result
+            .trim()
+            .parse::<i32>()
+            .map_err(|e| format!("Failed to parse pulse burst length: {}", e))?;
+
+        self.pulse_burst_length = pulse_burst_length;
+        Ok(pulse_burst_length)
+    }
 }
