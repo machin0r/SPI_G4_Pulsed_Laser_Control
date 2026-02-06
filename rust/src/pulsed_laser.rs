@@ -1,7 +1,16 @@
+//! Laser control library for SPI G4 pulsed lasers.
+//!
+//! This library provides high-level control over pulsed lasers via serial communication.
+//! It handles command formatting, error checking, and state management.
+
 use serialport::{Parity, SerialPort, StopBits};
 use std::io::Write;
 use std::time::Duration;
 
+/// Low-level serial communication handler for pulsed lasers.
+///
+/// Manages the serial port connection and handles sending/receiving
+/// commands with proper formatting and error checking.
 pub struct PulsedLaserSerial {
     port: String,
     baud_rate: u32,
@@ -11,6 +20,10 @@ pub struct PulsedLaserSerial {
     connection: Option<Box<dyn SerialPort>>,
 }
 
+/// High-level interface for controlling a pulsed laser.
+///
+/// Maintains the current state of the laser and provides
+/// methods for setting and querying laser parameters.
 pub struct PulsedLaser {
     control_mode: i8,
     simmer_current: i32,
@@ -60,6 +73,12 @@ pub struct PulsedLaser {
 }
 
 impl PulsedLaserSerial {
+    /// Creates a new serial connection configuration.
+    ///
+    /// Note: This does not open the connection. Call [`open_connection`]
+    /// to establish the connection.
+    ///
+    /// [`open_connection`]: PulsedLaserSerial::open_connection
     pub fn new(
         port: String,
         baud_rate: u32,
@@ -165,6 +184,23 @@ impl PulsedLaserSerial {
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     }
 
+    /// Sends a command to the laser and returns the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `command` - The command string (without CR/LF terminators)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The laser's response
+    /// * `Err(String)` - Error message from laser or I/O error
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Serial port is not open
+    /// - Write/read operation fails
+    /// - Laser returns an error code (E5-E35)
     pub fn send_command(&mut self, command: String) -> Result<String, String> {
         let command = format!("{}\r\n", command);
         self.write(command.as_bytes())
@@ -240,6 +276,20 @@ impl PulsedLaser {
         self.serial_conn = None;
     }
 
+    /// Sets the current control mode of the laser.
+    ///
+    /// Sets the passed control mode on the laser and updates
+    /// the internal state. Modes are 0-7
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `mode` - The mode to put the laser in
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the set command fails.
     pub fn set_control_mode(&mut self, mode: i8) -> Result<(), String> {
         let serial = self
             .serial_conn
@@ -253,6 +303,19 @@ impl PulsedLaser {
         Ok(())
     }
 
+    /// Gets the current control mode from the laser.
+    ///
+    /// Queries the laser for its current control mode and updates
+    /// the internal state.
+    ///
+    /// # Returns
+    ///
+    /// The current control mode (0-255)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
     pub fn get_control_mode(&mut self) -> Result<i8, String> {
         let serial = self
             .serial_conn
@@ -270,6 +333,22 @@ impl PulsedLaser {
         Ok(mode)
     }
 
+    /// Sets a bit in the laser's status word.
+    ///
+    /// Only bits 0, 1, 3, 4, 8, 9 are writable.
+    ///
+    /// Updates the internal state.
+    ///
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `bit` - The bit to set
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the set command fails.
     pub fn set_status_word(&mut self, bit: u8) -> Result<(), String> {
         if ![0, 1, 3, 4, 8, 9].contains(&bit) {
             return Err(format!("Bit {} is not writable", bit));
@@ -295,6 +374,21 @@ impl PulsedLaser {
         Ok(())
     }
 
+    /// Clears a bit in the laser's status word.
+    ///
+    /// Only bits 0, 1, 3, 4, 8, 9 are writable.
+    ///
+    /// Updates the internal state.
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `bit` - The bit to cleat
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the set command fails.
     pub fn clear_status_word(&mut self, bit: u8) -> Result<(), String> {
         if ![0, 1, 3, 4, 8, 9].contains(&bit) {
             return Err(format!("Bit {} is not writable", bit));
@@ -330,6 +424,17 @@ impl PulsedLaser {
             .map(|digit| digit == 1)
     }
 
+    /// Get the value of the laser's status word.
+    ///
+    /// Updates the internal state with the different bit meanings
+    ///
+    /// # Returns
+    /// The status bit as a string
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the get command fails.
     pub fn get_status_word(&mut self) -> Result<String, String> {
         let serial = self
             .serial_conn
@@ -349,6 +454,19 @@ impl PulsedLaser {
         Ok(result)
     }
 
+    /// Set the current control mode on the laser.
+    ///
+    /// The current is limited from 0-100.
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `current` - The simmer current value to set in A
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
     pub fn set_simmer_current(&mut self, current: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
@@ -363,6 +481,18 @@ impl PulsedLaser {
         Ok(())
     }
 
+    /// Gets the simmer current from the laser.
+    ///
+    /// The current is limited from 0-100.
+    ///
+    /// # Returns
+    ///
+    /// The simmer current value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the set command fails.
     pub fn get_simmer_current(&mut self) -> Result<i32, String> {
         let serial = self
             .serial_conn
@@ -380,6 +510,20 @@ impl PulsedLaser {
         Ok(current)
     }
 
+    /// Set the active current for the laser.
+    ///
+    /// The current is limited from 0-1000.
+    /// Active current is proportional to power
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `current` - The active current value to set
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
     pub fn set_active_current(&mut self, current: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
@@ -394,6 +538,19 @@ impl PulsedLaser {
         Ok(())
     }
 
+    /// Gets the active current from the laser.
+    ///
+    /// The current is limited from 0-1000.
+    /// Active current is proportional to power
+    ///
+    /// # Returns
+    ///
+    /// The active current value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the set command fails.
     pub fn get_active_current(&mut self) -> Result<i32, String> {
         let serial = self
             .serial_conn
@@ -411,6 +568,19 @@ impl PulsedLaser {
         Ok(current)
     }
 
+    /// Sets the pulse waveform to use.
+    ///
+    /// Waveforms available are 0-31
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `waveform` - The pulsed waveform
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
     pub fn set_waveform(&mut self, waveform: i8) -> Result<(), String> {
         let serial = self
             .serial_conn
@@ -425,6 +595,18 @@ impl PulsedLaser {
         Ok(())
     }
 
+    /// Gets the active pulse waveform from the laser.
+    ///
+    /// Waveforms are 0-31
+    ///
+    /// # Returns
+    ///
+    /// The active pulse waveform.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the set command fails.
     pub fn get_waveform(&mut self) -> Result<i8, String> {
         let serial = self
             .serial_conn
@@ -442,6 +624,23 @@ impl PulsedLaser {
         Ok(waveform)
     }
 
+    /// Set the Pulse Repetition Frequency (PRF) of the laser.
+    ///
+    /// The PRF is limited from 1000-1000000 in pulsed mode,
+    /// and 100 to 100000 in modulated CW mode.
+    ///
+    /// Change is implemented when pulses start ('SS 1' sent)
+    /// Every time a change is made, 'SS 1' still needs to be sent to update
+    ///
+    /// # Returns
+    ///
+    /// # Arguments
+    /// * `prf_hz` - The Pulse Repetition Frequency to set
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
     pub fn set_prf(&mut self, prf_hz: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
@@ -456,6 +655,17 @@ impl PulsedLaser {
         Ok(())
     }
 
+    /// Get the Pulse Repetition Frequency (PRF) from the laser.
+    ///
+    /// The PRF is limited from 1000-1000000 in pulsed mode,
+    /// and 100 to 100000 in modulated CW mode.
+    ///
+    /// # Returns
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
     pub fn get_prf(&mut self) -> Result<i32, String> {
         let serial = self
             .serial_conn
