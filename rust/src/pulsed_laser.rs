@@ -854,4 +854,34 @@ impl PulsedLaser {
 
         Ok(())
     }
+
+    /// Query the monitoring signals
+    ///
+    /// Response is a status byte
+    ///
+    /// # Returns
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_monitoring_states(&mut self) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QD".to_string())?;
+
+        self.monitor = self.parse_bit(&result, 0)?;
+        self.alarm_state_monitor = self.parse_bit(&result, 1)?;
+        self.laser_temp_monitor = self.parse_bit(&result, 2)?;
+        self.beam_delivery_temp_monitor = self.parse_bit(&result, 3)?;
+        self.system_fault_monitor = self.parse_bit(&result, 4)?;
+        self.deactivated_monitor = self.parse_bit(&result, 5)?;
+        self.emission_warning_monitor = self.parse_bit(&result, 6)?;
+        self.laser_on_monitor = self.parse_bit(&result, 7)?;
+
+        Ok(())
+    }
 }
