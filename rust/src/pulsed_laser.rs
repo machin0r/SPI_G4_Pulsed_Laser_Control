@@ -2,7 +2,7 @@ use serialport::{Parity, SerialPort, StopBits};
 use std::io::Write;
 use std::time::Duration;
 
-struct PulsedLaserSerial {
+pub struct PulsedLaserSerial {
     port: String,
     baud_rate: u32,
     stop_bits: StopBits,
@@ -11,7 +11,7 @@ struct PulsedLaserSerial {
     connection: Option<Box<dyn SerialPort>>,
 }
 
-struct PulsedLaser {
+pub struct PulsedLaser {
     control_mode: i8,
     simmer_current: i32,
     active_current: i32,
@@ -60,7 +60,7 @@ struct PulsedLaser {
 }
 
 impl PulsedLaserSerial {
-    fn new(
+    pub fn new(
         port: String,
         baud_rate: u32,
         stop_bits: StopBits,
@@ -165,7 +165,7 @@ impl PulsedLaserSerial {
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     }
 
-    fn send_command(&mut self, command: String) -> Result<String, String> {
+    pub fn send_command(&mut self, command: String) -> Result<String, String> {
         let command = format!("{}\r\n", command);
         self.write(command.as_bytes())
             .map_err(|e| format!("Write error: {}", e))?;
@@ -182,7 +182,7 @@ impl PulsedLaserSerial {
 }
 
 impl PulsedLaser {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             control_mode: 0,
             simmer_current: 0,
@@ -240,7 +240,7 @@ impl PulsedLaser {
         self.serial_conn = None;
     }
 
-    fn set_control_mode(&mut self, mode: i8) -> Result<(), String> {
+    pub fn set_control_mode(&mut self, mode: i8) -> Result<(), String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -253,7 +253,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn get_control_mode(&mut self) -> Result<i8, String> {
+    pub fn get_control_mode(&mut self) -> Result<i8, String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -270,7 +270,7 @@ impl PulsedLaser {
         Ok(mode)
     }
 
-    fn set_status_word(&mut self, bit: u8) -> Result<(), String> {
+    pub fn set_status_word(&mut self, bit: u8) -> Result<(), String> {
         if ![0, 1, 3, 4, 8, 9].contains(&bit) {
             return Err(format!("Bit {} is not writable", bit));
         }
@@ -295,7 +295,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn clear_status_word(&mut self, bit: u8) -> Result<(), String> {
+    pub fn clear_status_word(&mut self, bit: u8) -> Result<(), String> {
         if ![0, 1, 3, 4, 8, 9].contains(&bit) {
             return Err(format!("Bit {} is not writable", bit));
         }
@@ -330,7 +330,7 @@ impl PulsedLaser {
             .map(|digit| digit == 1)
     }
 
-    fn get_status_word(&mut self) -> Result<String, String> {
+    pub fn get_status_word(&mut self) -> Result<String, String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -349,7 +349,7 @@ impl PulsedLaser {
         Ok(result)
     }
 
-    fn set_simmer_current(&mut self, current: i32) -> Result<(), String> {
+    pub fn set_simmer_current(&mut self, current: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -363,7 +363,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn get_simmer_current(&mut self) -> Result<i32, String> {
+    pub fn get_simmer_current(&mut self) -> Result<i32, String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -380,7 +380,7 @@ impl PulsedLaser {
         Ok(current)
     }
 
-    fn set_active_current(&mut self, current: i32) -> Result<(), String> {
+    pub fn set_active_current(&mut self, current: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -394,7 +394,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn get_active_current(&mut self) -> Result<i32, String> {
+    pub fn get_active_current(&mut self) -> Result<i32, String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -411,7 +411,7 @@ impl PulsedLaser {
         Ok(current)
     }
 
-    fn set_waveform(&mut self, waveform: i8) -> Result<(), String> {
+    pub fn set_waveform(&mut self, waveform: i8) -> Result<(), String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -425,7 +425,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn get_waveform(&mut self) -> Result<i8, String> {
+    pub fn get_waveform(&mut self) -> Result<i8, String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -442,7 +442,7 @@ impl PulsedLaser {
         Ok(waveform)
     }
 
-    fn set_prf(&mut self, prf: i32) -> Result<(), String> {
+    pub fn set_prf(&mut self, prf: i32) -> Result<(), String> {
         let serial = self
             .serial_conn
             .as_mut()
@@ -456,7 +456,7 @@ impl PulsedLaser {
         Ok(())
     }
 
-    fn get_prf(&mut self) -> Result<i32, String> {
+    pub fn get_prf(&mut self) -> Result<i32, String> {
         let serial = self
             .serial_conn
             .as_mut()
