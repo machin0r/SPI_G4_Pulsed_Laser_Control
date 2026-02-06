@@ -258,6 +258,22 @@ impl PulsedLaser {
         }
     }
 
+    fn decode_alarms(&self, alarm_code: i32) -> String {
+        match alarm_code {
+            40..=49 => "System fault: diode driver current".to_string(),
+            50..=53 => "System fault: seed laser".to_string(),
+            65 => "System fault: beam delivery temperature sensor fault (1)".to_string(),
+            66 => "Beam delivery temperature alarm (1)".to_string(),
+            80 => "Base plate temperature alarm".to_string(),
+            82 => "System fault: base plate temperature sensor fault".to_string(),
+            93 => "Power supply alarm. When supply is restored the Laser returns to the STANDBY state".to_string(),
+            95 => "Fan alarm. The Laser continues to operate if one fan stalls. The fan noise increases as the  remaining 3 fans increase their speed to compensate. Only cleared by cycling the power supply.".to_string(),
+            99 => "Emergency stop alarm Triggered by the Laser_Disable signal".to_string(),
+            100.. => "System fault: internal laser fault".to_string(),
+            _ => format!("Unknown alarm: {}", alarm_code),
+        }
+    }
+
     fn create_serial_connection(
         &mut self,
         port: String,
@@ -801,5 +817,41 @@ impl PulsedLaser {
 
         self.pump_duty = pump_duty;
         Ok(pump_duty)
+    }
+
+    /// Query the alarms active
+    ///
+    /// Each alarm is passed to decode_alarms, and the returned error message
+    /// is appended to the alarms array
+    ///
+    /// # Returns
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_alarms(&mut self) -> Result<(), String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QA".to_string())?;
+
+        self.alarms.clear();
+
+        let new_alarms: Vec<String> = result
+            .split(", ")
+            .filter(|s| !s.is_empty()) // Handles trailing commas
+            .map(|s| {
+                s.parse::<i32>()
+                    .map(|code| self.decode_alarms(code))
+                    .map_err(|e| format!("Failed to parse alarm '{}': {}", s, e))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.alarms.extend(new_alarms);
+
+        Ok(())
     }
 }
