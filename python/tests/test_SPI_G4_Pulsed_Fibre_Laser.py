@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import Mock, patch
-from SPI_G4_Pulsed_Fibre_Laser import Pulsed_Laser, Pulsed_Laser_Serial
+from spi_g4_pulsed_laser import Pulsed_Laser, Pulsed_Laser_Serial
 import serial
 
 @pytest.fixture
 def mock_serial():
-    with patch('SPI_G4_Pulsed_Fibre_Laser.serial.Serial') as mock_serial:
+    with patch('spi_g4_pulsed_laser.SPI_G4_Pulsed_Fibre_Laser.serial.Serial') as mock_serial:
         yield mock_serial
 
 
