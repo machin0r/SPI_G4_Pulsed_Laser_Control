@@ -56,7 +56,7 @@ pub struct PulsedLaser {
     status_word_int: i16,
 
     serial_number: i16,
-    part_numbers: String,
+    part_number: String,
     vendor_info: String,
 
     error_code: String,
@@ -245,7 +245,7 @@ impl PulsedLaser {
             extended_diode_currents: Vec::new(),
             status_word_int: 0,
             serial_number: 0,
-            part_numbers: String::new(),
+            part_number: String::new(),
             vendor_info: String::new(),
             error_code: String::new(),
             external_pulse_trigger: false,
@@ -1116,5 +1116,27 @@ impl PulsedLaser {
 
         self.serial_number = serial_number;
         Ok(serial_number)
+    }
+
+    /// Query the laser part number
+    ///
+    /// # Returns
+    ///
+    /// The part number
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn read_part_number(&mut self) -> Result<String, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let part_number = serial.send_command("RPN".to_string())?;
+
+        self.part_number = part_number.clone();
+        Ok(part_number)
     }
 }
