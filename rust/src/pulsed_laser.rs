@@ -1090,4 +1090,31 @@ impl PulsedLaser {
         self.status_word_int = status_word_int;
         Ok(status_word_int)
     }
+
+    /// Query the laser serial number
+    ///
+    /// # Returns
+    ///
+    /// The serial number
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn read_serial_number(&mut self) -> Result<i16, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("RSN".to_string())?;
+
+        let serial_number = result
+            .trim()
+            .parse::<i16>()
+            .map_err(|e| format!("Failed to parse serial number: {}", e))?;
+
+        self.serial_number = serial_number;
+        Ok(serial_number)
+    }
 }
