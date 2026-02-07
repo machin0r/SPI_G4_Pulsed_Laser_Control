@@ -53,7 +53,7 @@ pub struct PulsedLaser {
     operating_hours: i32,
     external_prf: i32,
     extended_diode_currents: Vec<f32>,
-    status_word_int: i8,
+    status_word_int: i16,
 
     serial_number: i16,
     part_numbers: String,
@@ -1062,5 +1062,32 @@ impl PulsedLaser {
 
         self.extended_diode_currents = extended_diode_current.clone();
         Ok(extended_diode_current)
+    }
+
+    /// Query the status word as a 16-bit integer
+    ///
+    /// # Returns
+    ///
+    /// The status word
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_status_word_int(&mut self) -> Result<i16, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QS".to_string())?;
+
+        let status_word_int = result
+            .trim()
+            .parse::<i16>()
+            .map_err(|e| format!("Failed to parse status word: {}", e))?;
+
+        self.status_word_int = status_word_int;
+        Ok(status_word_int)
     }
 }
