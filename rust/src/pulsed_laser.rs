@@ -35,8 +35,6 @@ pub struct PulsedLaser {
 
     alarms: Vec<String>,
 
-    monitoring_signals: Vec<String>,
-
     // Monitoring Word Vars
     monitor: bool,
     alarm_state_monitor: bool,
@@ -58,8 +56,6 @@ pub struct PulsedLaser {
     serial_number: i16,
     part_number: String,
     vendor_info: String,
-
-    error_code: String,
 
     // Status Word Vars
     external_pulse_trigger: bool,
@@ -143,7 +139,7 @@ impl PulsedLaserSerial {
         Ok(())
     }
 
-    fn close_connection(&mut self) {
+    pub fn close_connection(&mut self) {
         self.connection = None;
     }
 
@@ -228,7 +224,6 @@ impl PulsedLaser {
             pulse_burst_length: 0,
             pump_duty: 0,
             alarms: Vec::new(),
-            monitoring_signals: Vec::new(),
             monitor: false,
             alarm_state_monitor: false,
             laser_temp_monitor: false,
@@ -247,7 +242,6 @@ impl PulsedLaser {
             serial_number: 0,
             part_number: String::new(),
             vendor_info: String::new(),
-            error_code: String::new(),
             external_pulse_trigger: false,
             pilot_laser: false,
             external_current_control: false,
@@ -457,8 +451,7 @@ impl PulsedLaser {
             .as_mut()
             .ok_or("Serial connection not established")?;
 
-        let get_command = format!("GS");
-        let result = serial.send_command(get_command)?;
+        let result = serial.send_command("GS".to_string())?;
 
         self.enable = self.parse_bit(&result, 0)?;
         self.pulses = self.parse_bit(&result, 3)?;
@@ -1190,5 +1183,11 @@ impl PulsedLaser {
         self.query_alarms()?;
 
         Ok(())
+    }
+}
+
+impl Default for PulsedLaser {
+    fn default() -> Self {
+        Self::new()
     }
 }
