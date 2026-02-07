@@ -1166,4 +1166,29 @@ impl PulsedLaser {
         self.vendor_info = vendor_info.clone();
         Ok(vendor_info)
     }
+
+    pub fn initialise_laser(&mut self) -> Result<(), String> {
+        self.get_control_mode()?;
+        self.get_status_word()?;
+        self.get_simmer_current()?;
+        self.get_active_current()?;
+        self.get_waveform()?;
+        self.get_prf()?;
+        self.get_pulse_burst_length()?;
+        self.get_pump_duty()?;
+        self.query_monitoring_states()?;
+        self.query_laser_temp()?;
+        self.query_beam_delivery_temp()?;
+        self.query_active_diode_currents()?;
+        self.query_operating_hours()?;
+        self.query_ext_prf()?;
+        self.query_extended_diode_currents()?;
+        self.query_status_word_int()?;
+        self.read_serial_number()?;
+        self.read_part_number()?;
+        self.query_vendor_info()?;
+        self.query_alarms()?;
+
+        Ok(())
+    }
 }
