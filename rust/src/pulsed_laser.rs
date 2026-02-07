@@ -1139,4 +1139,31 @@ impl PulsedLaser {
         self.part_number = part_number.clone();
         Ok(part_number)
     }
+
+    /// Query the vendor information
+    ///
+    /// # Returns
+    ///
+    /// The vendor information in the form:
+    /// FPGA HW Rev: 8.x.x
+    /// NIOS-II FW Rev: 8.x.x
+    /// Stellaris FW Rev: 0.0.x.x
+    /// IP Config: xxx.xxx.xxx.xxx DHCP
+    /// Driver FW Rev: x.x
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_vendor_info(&mut self) -> Result<String, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let vendor_info = serial.send_command("RQC".to_string())?;
+
+        self.vendor_info = vendor_info.clone();
+        Ok(vendor_info)
+    }
 }
