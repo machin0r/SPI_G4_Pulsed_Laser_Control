@@ -1001,4 +1001,36 @@ impl PulsedLaser {
         self.operating_hours = operating_hours;
         Ok(operating_hours)
     }
+
+    /// Query the external Pulse Repetition Frequency of the laser
+    ///
+    /// Returns the measured repetition rate in Hz of the external
+    /// pulse trigger signal (rising edge to rising edge
+    ///
+    /// 0-1000000 Hz
+    ///
+    /// # Returns
+    ///
+    /// The externally applied PRF
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_ext_prf(&mut self) -> Result<i32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QR".to_string())?;
+
+        let external_prf = result
+            .trim()
+            .parse::<i32>()
+            .map_err(|e| format!("Failed to parse external PRF: {}", e))?;
+
+        self.external_prf = external_prf;
+        Ok(external_prf)
+    }
 }
