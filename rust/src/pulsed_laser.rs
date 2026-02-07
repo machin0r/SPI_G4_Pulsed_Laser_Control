@@ -48,7 +48,7 @@ pub struct PulsedLaser {
     laser_on_monitor: bool,
 
     laser_temp: f32,
-    beam_delivery_temp: i16,
+    beam_delivery_temp: f32,
     diode_currents: String,
     operating_hours: i32,
     external_prf: i32,
@@ -237,9 +237,9 @@ impl PulsedLaser {
             deactivated_monitor: false,
             emission_warning_monitor: false,
             laser_on_monitor: false,
-            beam_delivery_temp: 0,
             diode_currents: String::new(),
             laser_temp: 0.0,
+            beam_delivery_temp: 0.0,
             operating_hours: 0,
             external_prf: 0,
             extended_diode_current: String::new(),
@@ -912,5 +912,34 @@ impl PulsedLaser {
 
         self.laser_temp = laser_temp;
         Ok(laser_temp)
+    }
+
+    /// Query the beam delivery temperature
+    ///
+    /// Response is "nn.n" from 00.0-85.0 C
+    ///
+    /// # Returns
+    ///
+    /// The current beam delivery temperature
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_beam_delivery_temp(&mut self) -> Result<f32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QU".to_string())?;
+
+        let beam_delivery_temp = result
+            .trim()
+            .parse::<f32>()
+            .map_err(|e| format!("Failed to parse beam delivery temperature: {}", e))?;
+
+        self.beam_delivery_temp = beam_delivery_temp;
+        Ok(beam_delivery_temp)
     }
 }
