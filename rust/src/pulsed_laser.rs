@@ -972,4 +972,33 @@ impl PulsedLaser {
         self.diode_currents = diode_currents.clone();
         Ok(diode_currents)
     }
+
+    /// Query the operating time of the laser
+    ///
+    /// Time for which the 24V Logic supply has been applied
+    ///
+    /// # Returns
+    ///
+    /// The time the laser has been operating for
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_operating_hours(&mut self) -> Result<i32, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QH".to_string())?;
+
+        let operating_hours = result
+            .trim()
+            .parse::<i32>()
+            .map_err(|e| format!("Failed to parse operating hours: {}", e))?;
+
+        self.operating_hours = operating_hours;
+        Ok(operating_hours)
+    }
 }
