@@ -49,7 +49,7 @@ pub struct PulsedLaser {
 
     laser_temp: f32,
     beam_delivery_temp: f32,
-    diode_currents: String,
+    diode_currents: Vec<f32>,
     operating_hours: i32,
     external_prf: i32,
     extended_diode_current: String,
@@ -237,9 +237,9 @@ impl PulsedLaser {
             deactivated_monitor: false,
             emission_warning_monitor: false,
             laser_on_monitor: false,
-            diode_currents: String::new(),
             laser_temp: 0.0,
             beam_delivery_temp: 0.0,
+            diode_currents: Vec::new(),
             operating_hours: 0,
             external_prf: 0,
             extended_diode_current: String::new(),
@@ -941,5 +941,35 @@ impl PulsedLaser {
 
         self.beam_delivery_temp = beam_delivery_temp;
         Ok(beam_delivery_temp)
+    }
+
+    /// Query the diode currents of the pump laser driven stages
+    ///
+    /// Response is 0-20000 mA, there are two values returned.
+    ///
+    /// # Returns
+    ///
+    /// The active diode currents
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the serial connection is not established
+    /// or if the laser's response cannot be parsed.
+    pub fn query_active_diode_currents(&mut self) -> Result<Vec<f32>, String> {
+        let serial = self
+            .serial_conn
+            .as_mut()
+            .ok_or("Serial connection not established")?;
+
+        let result = serial.send_command("QI".to_string())?;
+
+        let diode_currents = result
+            .split(", ")
+            .map(|s| s.trim().parse::<f32>())
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to parse the active diode current: {}", e))?;
+
+        self.diode_currents = diode_currents.clone();
+        Ok(diode_currents)
     }
 }
